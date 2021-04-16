@@ -19,6 +19,17 @@ from collections import namedtuple
 import os
 import re
 import unittest
+import pytest
+import sys
+import shutil
+import logging
+
+
+if sys.version_info[:2] <= (2, 7):
+    import mock  # pylint: disable=import-error
+else:
+    from unittest import mock  # pylint: disable=no-name-in-module
+
 
 from convert2rhel import unit_tests  # Imports unit_tests/__init__.py
 from convert2rhel import utils
@@ -229,3 +240,21 @@ class TestUtils(unittest.TestCase):
 
     def test_is_rpm_based_os(self):
         assert is_rpm_based_os() in (True, False)
+
+@pytest.mark.parametrize("raise_exception", [True, False])
+def test_remove_tmp_dir(monkeypatch, raise_exception):
+    shutil_rmtree = mock.Mock()
+    monkeypatch.setattr(shutil, "rmtree", value=shutil_rmtree)
+    loggerinst_info = mock.Mock()
+    monkeypatch.setattr(logging.Logger, "info", loggerinst_info)
+
+    if raise_exception:
+        shutil_rmtree.side_effect = OSError
+
+    utils.remove_tmp_dir()
+
+    if raise_exception:
+       loggerinst_info.assert_called()
+    else:
+        loggerinst_info.assert_called_once_with("Temporary folder %s removed" % utils.TMP_DIR)
+    

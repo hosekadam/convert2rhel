@@ -268,6 +268,16 @@ def get_traceback_str():
     """Get a traceback of an exception as a string."""
     exc_type, exc_value, exc_traceback = sys.exc_info()
     return "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+                                              
+
+def remove_tmp_dir():
+    """Remove temporary folder (TMP_DIR), not needed post-conversion"""
+    try:
+        shutil.rmtree(TMP_DIR)
+        loggerinst.info("Temporary folder %s removed" % TMP_DIR)
+    except OSError as err:
+        loggerinst.info("Failed removing backup folder %s" % TMP_DIR)
+        loggerinst.info("Error (%s): %s" % (err.errno, err.strerror))
 
 
 class DictWListValues(dict):
