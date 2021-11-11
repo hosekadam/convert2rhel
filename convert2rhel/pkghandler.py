@@ -285,19 +285,23 @@ def get_rpm_header(pkg_obj):
         loggerinst.critical("Unable to find package '%s' in the rpm database." % pkg_obj.name)
 
 
-def get_installed_pkg_objects(name=""):
+def get_installed_pkg_objects(name="", backup=False):
     """Return list with installed package objects. The packages can be
     optionally filtered by name.
     """
     if pkgmanager.TYPE == "yum":
-        return _get_installed_pkg_objects_yum(name)
+        return _get_installed_pkg_objects_yum(name, backup)
     elif pkgmanager.TYPE == "dnf":
         return _get_installed_pkg_objects_dnf(name)
 
 
-def _get_installed_pkg_objects_yum(name):
+def _get_installed_pkg_objects_yum(name, backup=False):
     yum_base = pkgmanager.YumBase()
     # Disable plugins (when kept enabled yum outputs useless text every call)
+    if backup:
+        import pdb
+
+        pdb.set_trace()
     yum_base.doConfigSetup(init_plugins=False)
     if name:
         return yum_base.rpmdb.returnPackages(patterns=[name])

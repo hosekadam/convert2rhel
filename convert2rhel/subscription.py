@@ -74,14 +74,14 @@ def subscribe_system():
         tool_opts.password = None
 
 
-def unregister_system():
+def unregister_system(backup=False):
     """Unregister the system from RHSM."""
     loggerinst.info("Unregistering the system.")
     if tool_opts.keep_rhsm:
         loggerinst.info("Skipping due to the use of --keep-rhsm.")
         return
 
-    submgr_installed = pkghandler.get_installed_pkg_objects("subscription-manager")
+    submgr_installed = pkghandler.get_installed_pkg_objects("subscription-manager", backup)
     if not submgr_installed:
         loggerinst.info("The subscription-manager package is not installed.")
         return
@@ -413,7 +413,7 @@ def rollback():
     """Rollback subscription related changes"""
     try:
         loggerinst.task("Rollback: RHSM-related actions")
-        unregister_system()
+        unregister_system(backup=True)
     except OSError:
         loggerinst.warn("subscription-manager not installed, skipping")
 
