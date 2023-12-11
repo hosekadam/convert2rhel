@@ -32,6 +32,8 @@ def main():
     remove_repository_files_packages()
     subscribe_system()
 
+    utils.run_subprocess(["yum", "swap", "centos-logos", "redhat-logos", "--releasever=7Server", "-y"])
+
     validate_transaction()
 
 
