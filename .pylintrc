@@ -85,7 +85,8 @@ disable=
  useless-suppression,
  use-symbolic-message-instead,
  wrong-import-order,
- wrong-import-position
+ wrong-import-position,
+ syntax-error
 
 [REPORTS]
 
