@@ -4,332 +4,45 @@ summary+: |
 description+: |
     Set of tests/plans of less frequency demands.
     tier1 is run when the PR gets merged to the main branch.
+    Env possible options. Remove the empty ones
+    PKGS_TO_INSTALL:
+    PKGS_TO_RM_FROM_EXCL_LIST:
+    PKGS_INSTALLED_AFTER:
 
-/non-destructive:
+
+/packages_in_system_and_config_alma-8-8:
     enabled: false
-    because: No non-destructive tests assigned to tier1.
+    adjust+:
+        - enabled: true
+          when: distro == alma-8.8
+    environment+:
+        PKGS_TO_INSTALL: shim-x64
+        PKGS_INSTALLED_AFTER:
     discover+:
-        filter+:
-            ['tier: 1', 'tag: non-destructive']
-
-/destructive:
-    /multiple-nic:
-        provision:
-          how: artemis
-          pool: beaker
-          hardware:
-            network:
-              - type: eth
-              - type: eth
-        enabled: false
-        adjust+:
-          - enabled: true
-            when: distro == centos-7, centos-8
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: Verify multiple NIC are present
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/multiple-nic/multiple_nic.py
-            - name: main conversion preparation
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/method/rhsm.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /changed_yum_conf:
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: main conversion preparation
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/changed-yum-conf/test_patch_yum_conf.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /remove_excld_pkgs_epel8:
-        enabled: false
-        adjust+:
-            - enabled: true
-              when: distro == centos-8, alma-8, rocky-8
-            - environment+:
-                PACKAGES: centos-backgrounds centos-gpg-keys
-              when: distro == centos
-            - environment+:
-                PACKAGES: almalinux-backgrounds
-              when: distro == alma
-              because: No almalinux-gpg-keys package for release 8 available
-            - environment+:
-                PACKAGES: rocky-backgrounds rocky-gpg-keys
-              when: distro == rocky
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: main conversion preparation
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/remove-excld-pkgs/test_remove_excld_pkgs.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /remove_excld_pkgs_epel7:
-        enabled: false
-        adjust+:
-            - enabled: true
-              when: distro == oracle-7, centos-7
-        environment+:
-            PACKAGES: gnome-documents-libs shim-x64
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: main conversion preparation
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/remove-excld-pkgs/test_remove_excld_pkgs.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
+        filter: tag:checks-after-conversion
+    prepare+:
+        - name: main conversion preparation
+          how: shell
+          script: pytest -svv tests/integration/*/destructive/pkgs-modified/test_pkgs_modify.py
+        - name: reboot after conversion
+          how: ansible
+          playbook: tests/ansible_collections/roles/reboot/main.yml
 
 
-    /one_kernel_scenario:
-        enabled: false
-        adjust+:
-            - enabled: true
-              when: distro == centos-7, oracle-7
-        discover+:
-            # Exclude the rhel_subman check, we don't use RHSM for the conversion
-            filter: tag:checks-after-conversion & tag:-rhel-subman
-        prepare+:
-            - name: add custom repos
-              how: ansible
-              playbook: tests/ansible_collections/roles/add-custom-repos/main.yml
-            - name: install one kernel
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/one-kernel-scenario/install_one_kernel.py
-            - name: reboot machine to the one kernel
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-            - name: remove other kernels
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/one-kernel-scenario/remove_other_kernels.py
-            - name: reboot after all other kernels were removed
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-            - name: run conversion
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/one-kernel-scenario/run_conversion.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /language_test:
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: set non english locale
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/set-locale/use_non_english_language.py
-            - name: main conversion preparation
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/method/activation_key.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /missing_os_release:
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: remove os-release
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/os-release-removal/remove_os_release.py
-            - name: main conversion preparation
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/method/rhsm.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /system_up_to_date:
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: prepare non latest kernel
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/system-up-to-date/install_non_latest_kernel.py
-            - name: reboot machine to the non latest kernel
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-            - name: test inhibitor on non latest kernels
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/system-up-to-date/test_non_latest_kernel_inhibitor.py
-            - name: reboot machine back to the latest kernel
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-            - name: test conversion non updated package
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/system-up-to-date/test_system_up_to_date.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /removed_pkgs_centos_85:
-        enabled: false
-        adjust+:
-            - enabled: true
-              when: distro == centos-8-latest
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: install removed pkgs from CentOS 8.5
-              how: ansible
-              playbook: tests/integration/tier1/destructive/removed-pkgs-centos-85/ansible/install_removed_pkgs_from_centos_85_repos.yml
-            - name: main conversion preparation
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/removed-pkgs-centos-85/test_removed_pkgs_centos_85.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /changed_grub_valid:
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: modify grub config with valid changes
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/changed-grub-file/test_valid_changed_grub.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /changed_grub_invalid:
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: modify grub config with invalid changes
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/changed-grub-file/test_invalid_changed_grub.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /kernel_core_only:
-        enabled: false
-        adjust+:
-            - enabled: true
-              when: distro == alma-8, centos-8, oracle-8, rocky-8
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: make sure the 'kernel-core' is the only installed kernel package
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/kernel-core-only/remove_kernel_pkg.py
-            - name: reboot after kernel remove
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-            - name: main conversion preparation
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/method/activation_key.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /config_file:
-        enabled: false
-        adjust+:
-            - enabled: true
-              when: distro == centos-8-latest
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: main conversion preparation
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/config-file/test_config_file.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /detect_correct_boot_partition:
-        enabled: false
-        adjust+:
-            - enabled: true
-              when: initiator == human
-              because: There are no UEFI images available on the Testing Farm yet.
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: main conversion part
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/detect-bootloader-partition/test_detect_correct_boot_partition.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /kernel_boot_files_missing_initramfs_and_vmlinuz:
-        discover+:
-            filter: tag:checks-after-conversion & tag:-initramfs-and-vmlinuz-present
-        prepare+:
-            - name: main conversion part
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/kernel-boot-files/test_handle_missing_boot_files.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /kernel_boot_files_corrupted_initramfs_file:
-        discover+:
-            filter: tag:checks-after-conversion & tag:-initramfs-and-vmlinuz-present
-        prepare+:
-            - name: main conversion part
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/kernel-boot-files/test_handle_corrupted_files.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-
-    /latest_kernel_check_skip:
-        #TODO(danmyway) merge under system_not_updated in #757
-        enabled: false
-        adjust+:
-            - enabled: true
-              when: distro == centos-7, oracle-7
-        environment+:
-            CONVERT2RHEL_UNSUPPORTED_SKIP_KERNEL_CURRENCY_CHECK: 1
-            # Since we are removing all the repositories other than rhel-7-server-rpms
-            # we need pass CONVERT2RHEL_UNSUPPORTED_INCOMPLETE_ROLLBACK due to the inability
-            # to download and backup packages
-            CONVERT2RHEL_UNSUPPORTED_INCOMPLETE_ROLLBACK: 1
-            # Unavailable kmods may be present on the system due to the kernel package
-            # not being updated. Mitigate the issues by exporting CONVERT2RHEL_ALLOW_UNAVAILABLE_KMODS.
-            CONVERT2RHEL_ALLOW_UNAVAILABLE_KMODS: 1
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: prepare non latest kernel
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/system-up-to-date/install_non_latest_kernel.py
-            - name: add custom repos
-              how: ansible
-              playbook: tests/ansible_collections/roles/add-custom-repos/main.yml
-            - name: reboot machine
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
-            - name: main conversion
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/kernel-check-skip/test_latest_kernel_check_skip.py
-
-    /firewalld-disabled-ol8:
-        enabled: false
-        adjust+:
-            - enabled: true
-              when: distro == oracle-8-latest
-        discover+:
-            filter: tag:checks-after-conversion
-        prepare+:
-            - name: main conversion preparation
-              how: shell
-              script: pytest -svv tests/integration/*/destructive/firewalld-disabled-ol8/test_firewalld_disabled_ol8.py
-            - name: reboot after conversion
-              how: ansible
-              playbook: tests/ansible_collections/roles/reboot/main.yml
+/packages_in_system_and_config_alma8_latest:
+    enabled: false
+    adjust+:
+        - enabled: true
+          when: distro == alma-8-latest
+    environment+:
+        PKGS_TO_INSTALL: shim-x64
+        PKGS_INSTALLED_AFTER:
+    discover+:
+        filter: tag:checks-after-conversion
+    prepare+:
+        - name: main conversion preparation
+          how: shell
+          script: pytest -svv tests/integration/*/destructive/pkgs-modified/test_pkgs_modify.py
+        - name: reboot after conversion
+          how: ansible
+          playbook: tests/ansible_collections/roles/reboot/main.yml

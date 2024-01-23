@@ -1,3 +1,4 @@
+import configparser
 import dataclasses
 import json
 import logging
@@ -277,6 +278,40 @@ class ConfigUtils:
             backup_config = self.config_path.with_suffix(self.config_path.suffix + backup_suffix)
             backup_config.replace(self.config_path)
             logger.debug("ConfigUtils file was restored to the origin state")
+
+    def rm_from_config_file(self, var_name: str, var_values: str, section_name="system_info"):
+        """Remove from config file value. There can be more values divided by whitespace
+        E.g. "pkg1 pkg2 pkg3"
+        """
+        config = configparser.ConfigParser()
+
+        config.read(self.config_path)
+
+        for var_value in var_values.split():
+            value = config.get(section_name, var_name, fallback="")
+            # Hack for removing the empty line symbol, if not present, remove just the line
+            value = value.replace(f"{var_value}\n", "")
+            value = value.replace(f"{var_value}", "")
+            config.set(section_name, var_name, value.strip())
+
+        with open(self.config_path, "w") as config_file:
+            config.write(config_file)
+
+    def add_to_config_file(self, var_name: str, var_value: str, section_name="system_info"):
+        """Modify the config file. Provide name of the variable you need to add some values into."""
+        config = configparser.ConfigParser()
+
+        config.read(self.config_path)
+
+        value = config.get(section_name, var_name, fallback="")
+        value = f"{value}\n{var_value}\n"
+
+        print(f"Swap pkgs value: {value}")
+
+        config.set(section_name, var_name, value.strip())
+
+        with open(self.config_path, "w") as config_file:
+            config.write(config_file)
 
 
 @pytest.fixture()
